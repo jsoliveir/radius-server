@@ -1,0 +1,10 @@
+services:
+  radius:
+    build: 
+      network: host
+      context: .
+    ports:
+      - 1812:1812/udp
+    env_file:
+      - .env
+    

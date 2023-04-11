@@ -1,0 +1,15 @@
+image:
+  name: HabitusHealthEu01.azurecr.io/ci:dotnet-6.0
+  password: $AAD_BITBUCKET_CLIENT_SECRET
+  username: $AAD_BITBUCKET_CLIENT_ID
+
+options:
+  docker: true
+
+pipelines:
+  default:
+    - step: 
+        name: Build
+        script:
+          - Run-DockerBuild.ps1 -ImageName habitus-radius-server
+          
