@@ -15,3 +15,14 @@ If the user is authenticated, the Radius server will authorize the user's access
 
 
 ![img](img/chart.png)
+
+
+# Test
+
+```powershell
+docker compose up --build
+```
+
+```powershell
+docker run -it --rm 2stacks/radtest radtest <email> <password> 127.0.0.1 0 secret
+```
