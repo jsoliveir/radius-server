@@ -17,11 +17,13 @@ If the user is authenticated, the Radius server will authorize the user's access
 ![img](img/chart.png)
 
 
-# Test
+# Build
 
 ```powershell
 docker compose up --build
 ```
+
+# Test
 
 ```powershell
 docker run -it --rm --network=host `
