@@ -26,6 +26,5 @@ docker compose up --build
 # Test
 
 ```powershell
-docker run -it --rm --network=host `
-    2stacks/radtest radtest <email> <password> 127.0.0.1 0 secret
+docker run -it --rm --network=host 2stacks/radtest radtest <email> <password> 127.0.0.1 0 secret
 ```
