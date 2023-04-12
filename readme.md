@@ -12,3 +12,6 @@ It manages user authentication and authorization by receiving access requests fr
 Upon receiving the access request, the Radius server authenticates the user by checking the user credentials against the authentication server's database. 
 
 If the user is authenticated, the Radius server will authorize the user's access to network resources based on predefined policies and rules.
+
+
+![img](img/chart.png)
