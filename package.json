@@ -1,11 +1,23 @@
 {
+  "type": "module",
+  "main": "index.js",
   "scripts": {
     "start": "node ./src/index.js"
   },
   "dependencies": {
+    "@azure/msal-node": "^1.17.0",
     "axios": "^1.3.5",
+    "cookie-parser": "^1.4.6",
+    "crypto": "^1.0.1",
     "dgram": "^1.0.1",
     "dotenv": "^16.0.3",
-    "radius": "^1.1.4"
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.0",
+    "otpauth": "^9.1.1",
+    "otplib": "^12.0.1",
+    "qrcode": "^1.5.1",
+    "querystring": "^0.2.1",
+    "radius": "^1.1.4",
+    "request": "^2.88.2"
   }
 }
