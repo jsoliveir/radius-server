@@ -97,11 +97,9 @@ class RadiusServer {
                 const encoded = base32.stringify(Buffer.from(secret));
                 const validOtp = authenticator.check(otp, encoded)
                 if (validOtp) {
-                  this.log(`${email} : valid otp`)
                   resolve()
                 }
                 else {
-                  this.log(`${email} : invalid or expired otp`)
                   reject('invalid otp')
                 }
               }).catch(err => {
@@ -132,28 +130,26 @@ class RadiusServer {
       return;
     }
 
-
     //parse username and password from the binary packet
     let username = packet.attributes['User-Name'];
     let password = packet.attributes['User-Password'].slice(6);
     let otp = packet.attributes['User-Password'].slice(0, 6);
-    console.log(`${username}: Access-Request`)
 
     if (!this.sessions[username])
       this.sessions[username] = {}
 
     let session = this.sessions[username]
 
-    if (!session.attempts || session.attempts > 2)
-      session.attempts = 1
+    if (!session.attempt || session.attempt > 2)
+      session.attempt = 1
     else
-      session.attempts++
+      session.attempt++
 
-    if (!session.hasValidOtp || session.address != rinfo.address || Math.abs(session.attempts % 2) == 1) {
+    if (!session.hasValidOtp || session.address != rinfo.address || Math.abs(session.attempt % 2) == 1) {
       session.hasValidOtp = await this.verifyOtp(username, otp)
     }
 
-    if (!session.isAuthenticated || session.address != rinfo.address || Math.abs(session.attempts % 2) == 0) {
+    if (!session.isAuthenticated || session.address != rinfo.address || Math.abs(session.attempt % 2) == 0) {
       session.isAuthenticated =
         await this.azureLogin(username, password) ||
         await this.azureLogin(username, otp + password)
@@ -163,7 +159,7 @@ class RadiusServer {
       session.address = rinfo.address
     }
 
-    console.log(username, session)
+    this.log(username, session)
 
     let authentication =
       rinfo.address === session.address
