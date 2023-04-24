@@ -8,7 +8,7 @@ const tenantId = process.env.AAD_TENANT_ID
 const secret = process.env.RADIUS_SECRET
 import { authenticator } from 'otplib';
 import objectHash from 'object-hash';
-import { DefaultAzureCredential } from '@azure/identity'
+import { DefaultAzureCredential,ManagedIdentityCredential } from '@azure/identity'
 import { Buffer } from 'buffer'
 import { base32 } from 'rfc4648'
 
@@ -65,7 +65,7 @@ class RadiusServer {
   }
 
   async verifyOtp(email, otp) {
-    const credentials = new DefaultAzureCredential();
+    const credentials = new ManagedIdentityCredential();
 
     const scopes = ["https://graph.microsoft.com/.default"]; // Replace with the scopes you need
 
