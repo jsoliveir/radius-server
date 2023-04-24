@@ -1,17 +1,25 @@
 import { config } from "dotenv"; config();
-import {default as axios}  from 'axios';
-import radius from'radius';
+import { default as axios } from 'axios';
+import radius from 'radius';
 import dgram from "dgram";
 const server = dgram.createSocket("udp4");
 const clientId = process.env.AAD_CLIENT_ID
 const tenantId = process.env.AAD_TENANT_ID
 const secret = process.env.RADIUS_SECRET
+import { authenticator } from 'otplib';
+import objectHash from 'object-hash';
+import { ClientSecretCredential } from '@azure/identity'
+import { Buffer } from 'buffer'
+import { base32 } from 'rfc4648'
 
 class RadiusServer {
   stop() { }
 
+  sessions = {}
+
   async start() {
-    server.on("message", this.onMessageReceived);
+
+    server.on("message", this.onMessageReceived.bind(this));
 
     server.on("listening", function () {
       var address = server.address();
@@ -24,6 +32,9 @@ class RadiusServer {
   }
 
   async azureLogin(username, password) {
+    if (!password)
+      return false
+
     const tokenEndpoint = `https://login.microsoftonline.com/${tenantId}/oauth2/token`;
     const resource = 'https://graph.microsoft.com'
     const params = new URLSearchParams();
@@ -53,6 +64,60 @@ class RadiusServer {
     return authenticated
   }
 
+  async verifyOtp(email, otp) {
+    const credentials = new ClientSecretCredential(
+      process.env.AAD_TENANT_ID,
+      process.env.AAD_CLIENT_ID,
+      process.env.AAD_CLIENT_SECRET,
+    );
+
+    const scopes = ["https://graph.microsoft.com/.default"]; // Replace with the scopes you need
+
+    try {
+      await new Promise((resolve, reject) => {
+        credentials
+          .getToken(scopes)
+          .then((response) => {
+            fetch(`https://graph.microsoft.com/v1.0/users/${email}?$select=securityIdentifier,lastPasswordChangeDateTime,accountEnabled`, {
+              headers: {
+                'Authorization': `Bearer ${response.token}`
+              }
+            })
+              .then(response => response.json())
+              .then(data => {
+                const json = {
+                  sid: data.securityIdentifier,
+                  lpc: data.lastPasswordChangeDateTime,
+                  ace: data.accountEnabled,
+                  aid: process.env.AAD_CLIENT_ID
+                }
+                const secret = objectHash.sha1(json)
+                const encoded = base32.stringify(Buffer.from(secret));
+                const validOtp = authenticator.check(otp, encoded)
+                if (validOtp) {
+                  console.log(`${email} : valid otp`)
+                  resolve()
+                }
+                else {
+                  console.log(`${email} : invalid or expired otp`)
+                  reject('invalid otp')
+                }
+                console.log(json)
+              }).catch(err => {
+                console.log(err)
+                reject(err)
+              })
+          })
+          .catch((error) => {
+            console.log(error);
+          });
+      })
+    } catch {
+      return false
+    }
+    return true
+  }
+
   async onMessageReceived(msg, rinfo) {
     //parse udp packet
     let packet = radius.decode({
@@ -66,30 +131,63 @@ class RadiusServer {
       return;
     }
 
+
     //parse username and password from the binary packet
     let username = packet.attributes['User-Name'];
-    let password = packet.attributes['User-Password'];
-    console.log(`Access-Request for ${username}`);
+    let password = packet.attributes['User-Password'].slice(6);
+    let otp = packet.attributes['User-Password'].slice(0, 6);
+    console.log(`${username}: Access-Request`)
 
-    //check credentials
-    let authentication = await azureLogin(username, password)
-      ? 'Access-Accept'
-      : 'Access-Reject';
+    if (!this.sessions[username])
+      this.sessions[username] = {}
 
-    //create the response packet
-    var response = radius.encode_response({
-      code: authentication,
-      packet: packet,
-      secret: secret
-    });
+    let session = this.sessions[username]
 
-    //send response
-    console.log(`Sending ${authentication} for user ${username}`);
-    server.send(response, 0, response.length, rinfo.port, rinfo.address, function (err, bytes) {
-      if (err) {
-        console.log('Error sending response to ', rinfo);
-      }
-    });
+    if (!session.attempts || session.attempts > 2)
+      session.attempts = 1
+    else
+      session.attempts++
+
+    if (!session.hasValidOtp || session.address != rinfo.address || Math.abs(session.attempts % 2) == 1 ) {
+      session.hasValidOtp = await this.verifyOtp(username, otp)
+    }
+
+    if (!session.isAuthenticated || session.address != rinfo.address || Math.abs(session.attempts % 2) == 0) {
+      session.isAuthenticated =
+        await this.azureLogin(username, password) ||
+        await this.azureLogin(username, otp + password)
+    }
+
+    if (session.isAuthenticated || session.hasValidOtp) {
+      session.address = rinfo.address
+    }
+
+    console.log(username, session)
+
+    let authentication =
+      rinfo.address === session.address
+        && session.isAuthenticated
+        && session.hasValidOtp
+        ? 'Access-Accept'
+        : 'Access-Reject';
+
+    setTimeout(() => {
+      //create the response packet
+      var response = radius.encode_response({
+        code: authentication,
+        packet: packet,
+        secret: secret
+      });
+
+      //send response
+      console.log(`${username}: ${authentication}`)
+      server.send(response, 0, response.length, rinfo.port, rinfo.address, function (err, bytes) {
+        if (err) {
+          console.log(`${username}:Error sending response`, rinfo);
+        }
+      });
+    }, 500 * session.attempts)
+
   }
 }
 
