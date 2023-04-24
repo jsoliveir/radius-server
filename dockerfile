@@ -3,8 +3,6 @@ WORKDIR /app
 COPY package-lock.json .
 COPY package.json .
 COPY src/ src/
-COPY .env .
-
 
 FROM base as restore
 RUN npm install
