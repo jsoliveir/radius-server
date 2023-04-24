@@ -17,8 +17,8 @@ class RadiusServer {
 
   stop() { }
 
-  log(object) {
-    console.log(new Date().toJSON(), object);
+  log(...args) {
+    console.log(new Date().toJSON(), ...args);
   }
 
   async start() {
