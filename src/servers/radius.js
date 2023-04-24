@@ -13,18 +13,22 @@ import { Buffer } from 'buffer'
 import { base32 } from 'rfc4648'
 
 class RadiusServer {
+  sessions = {}
+
   stop() { }
 
-  sessions = {}
+  log(object) {
+    console.log(new Date().toJSON(), object);
+  }
 
   async start() {
 
     server.on("message", this.onMessageReceived.bind(this));
 
-    server.on("listening", function () {
+    server.on("listening", (function () {
       var address = server.address();
-      console.log(`radius server listening ${address.address}:${address.port}`);
-    });
+      this.log(`radius server listening ${address.address}:${address.port}`);
+    }).bind(this));
 
     await new Promise(() =>
       server.bind(process.env.PORT || 1812)
@@ -66,8 +70,8 @@ class RadiusServer {
 
   async verifyOtp(email, otp) {
     const credentials = process.env.ENVIRONMENT == "azure"
-    ? new ManagedIdentityCredential()
-    : new DefaultAzureCredential()
+      ? new ManagedIdentityCredential()
+      : new DefaultAzureCredential()
 
     const scopes = ["https://graph.microsoft.com/.default"]; // Replace with the scopes you need
 
@@ -93,20 +97,20 @@ class RadiusServer {
                 const encoded = base32.stringify(Buffer.from(secret));
                 const validOtp = authenticator.check(otp, encoded)
                 if (validOtp) {
-                  console.log(`${email} : valid otp`)
+                  this.log(`${email} : valid otp`)
                   resolve()
                 }
                 else {
-                  console.log(`${email} : invalid or expired otp`)
+                  this.log(`${email} : invalid or expired otp`)
                   reject('invalid otp')
                 }
               }).catch(err => {
-                console.log(err)
+                this.log(err)
                 reject(err)
               })
           })
           .catch((error) => {
-            console.log(error);
+            this.log(error);
           });
       })
     } catch {
@@ -124,7 +128,7 @@ class RadiusServer {
 
     //log request
     if (packet.code != 'Access-Request') {
-      console.log('unknown packet type: ', packet.code);
+      this.log('unknown packet type: ', packet.code);
       return;
     }
 
@@ -177,10 +181,10 @@ class RadiusServer {
       });
 
       //send response
-      console.log(`${username}: ${authentication}`)
+      this.log(`${username}: ${authentication}`)
       server.send(response, 0, response.length, rinfo.port, rinfo.address, function (err, bytes) {
         if (err) {
-          console.log(`${username}:Error sending response`, rinfo);
+          this.log(`${username}:Error sending response`, rinfo);
         }
       });
     }, 500 * session.attempts)
