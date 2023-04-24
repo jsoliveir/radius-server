@@ -17,17 +17,13 @@ class RadiusServer {
 
   stop() { }
 
-  log(...args) {
-    console.log(new Date().toJSON(), ...args);
-  }
-
   async start() {
 
     server.on("message", this.onMessageReceived.bind(this));
 
     server.on("listening", (function () {
       var address = server.address();
-      this.log(`radius server listening ${address.address}:${address.port}`);
+      console.log(`radius server listening ${address.address}:${address.port}`);
     }).bind(this));
 
     await new Promise(() =>
@@ -62,7 +58,7 @@ class RadiusServer {
           // then ignore it
           authenticated = true
         } else {
-          console.error(error.response.data.error_description)
+          console.log(new Date().toJSON(), username, error.response.data)
         }
       });
     return authenticated
@@ -103,12 +99,12 @@ class RadiusServer {
                   reject('invalid otp')
                 }
               }).catch(err => {
-                this.log(err)
+                console.log(new Date().toJSON(), email, err)
                 reject(err)
               })
           })
           .catch((error) => {
-            this.log(error);
+            console.log(new Date().toJSON(), email, error);
           });
       })
     } catch {
@@ -126,7 +122,7 @@ class RadiusServer {
 
     //log request
     if (packet.code != 'Access-Request') {
-      this.log('unknown packet type: ', packet.code);
+      console.log(new Date().toJSON(), 'unknown packet type: ', packet.code);
       return;
     }
 
@@ -145,26 +141,26 @@ class RadiusServer {
     else
       session.attempt++
 
-    if (!session.hasValidOtp || session.address != rinfo.address || Math.abs(session.attempt % 2) == 1) {
-      session.hasValidOtp = await this.verifyOtp(username, otp)
+    if (!session.validOtp || session.address != rinfo.address || Math.abs(session.attempt % 2) == 1) {
+      session.validOtp = await this.verifyOtp(username, otp)
     }
 
-    if (!session.isAuthenticated || session.address != rinfo.address || Math.abs(session.attempt % 2) == 0) {
-      session.isAuthenticated =
+    if (!session.authenticated || session.address != rinfo.address || Math.abs(session.attempt % 2) == 0) {
+      session.authenticated =
         await this.azureLogin(username, password) ||
         await this.azureLogin(username, otp + password)
     }
 
-    if (session.isAuthenticated || session.hasValidOtp) {
+    if (session.authenticated || session.validOtp) {
       session.address = rinfo.address
     }
 
-    this.log(username, session)
+    console.log(new Date().toJSON(), username, session)
 
     let authentication =
       rinfo.address === session.address
-        && session.isAuthenticated
-        && session.hasValidOtp
+        && session.authenticated
+        && session.validOtp
         ? 'Access-Accept'
         : 'Access-Reject';
 
@@ -177,10 +173,10 @@ class RadiusServer {
       });
 
       //send response
-      this.log(`${username}: ${authentication}`)
+      console.log(new Date().toJSON(), username, authentication)
       server.send(response, 0, response.length, rinfo.port, rinfo.address, function (err, bytes) {
         if (err) {
-          this.log(`${username}:Error sending response`, rinfo);
+          console.log(new Date().toJSON(), username, 'Error sending response', rinfo);
         }
       });
     }, 500 * session.attempts)
