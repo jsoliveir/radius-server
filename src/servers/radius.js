@@ -98,7 +98,6 @@ class RadiusServer {
                   console.log(`${email} : invalid or expired otp`)
                   reject('invalid otp')
                 }
-                console.log(json)
               }).catch(err => {
                 console.log(err)
                 reject(err)
