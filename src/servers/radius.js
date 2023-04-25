@@ -6,7 +6,7 @@ const server = dgram.createSocket("udp4");
 const clientId = process.env.AAD_CLIENT_ID
 const tenantId = process.env.AAD_TENANT_ID
 const secret = process.env.RADIUS_SECRET
-import { authenticator } from 'otplib';
+import { authenticator,totp } from 'otplib';
 import objectHash from 'object-hash';
 import { DefaultAzureCredential, ManagedIdentityCredential } from '@azure/identity'
 import { Buffer } from 'buffer'
@@ -91,7 +91,8 @@ class RadiusServer {
                 }
                 const secret = objectHash.sha1(json)
                 const encoded = base32.stringify(Buffer.from(secret));
-                const validOtp = authenticator.check(otp, encoded)
+                totp.options = { window: 24 * 60 * 60 }
+                const validOtp = totp.check(otp, encoded)
                 if (validOtp) {
                   resolve()
                 }
