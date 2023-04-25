@@ -91,8 +91,8 @@ class RadiusServer {
                 }
                 const secret = objectHash.sha1(json)
                 const encoded = base32.stringify(Buffer.from(secret));
-                totp.options = { window: 24 * 60 * 60 }
-                const validOtp = totp.check(otp, encoded)
+                authenticator.options = { ... authenticator.allOptions(), window: [2 * 60 * 24,1] }
+                const validOtp = authenticator.check(otp, encoded)
                 if (validOtp) {
                   resolve()
                 }
