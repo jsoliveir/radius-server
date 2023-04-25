@@ -6,7 +6,7 @@ const server = dgram.createSocket("udp4");
 const clientId = process.env.AAD_CLIENT_ID
 const tenantId = process.env.AAD_TENANT_ID
 const secret = process.env.RADIUS_SECRET
-import { authenticator,totp } from 'otplib';
+import { authenticator } from 'otplib';
 import objectHash from 'object-hash';
 import { DefaultAzureCredential, ManagedIdentityCredential } from '@azure/identity'
 import { Buffer } from 'buffer'
