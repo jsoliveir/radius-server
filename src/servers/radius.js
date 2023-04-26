@@ -143,8 +143,7 @@ class RadiusServer {
       session.validOtp = await this.verifyOtp(username, otp)
 
     session.authenticated =
-      await this.azureLogin(username, password) ||
-      await this.azureLogin(username, otp + password)
+      await this.azureLogin(username, password)
 
     if (session.validOtp && session.authenticated) {
       session.otp = otp
