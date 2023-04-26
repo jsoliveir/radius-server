@@ -142,11 +142,11 @@ class RadiusServer {
     else
       session.attempt++
 
-    if (!session.validOtp || session.address != rinfo.address || Math.abs(session.attempt % 2) == 1) {
-      session.validOtp = true // await this.verifyOtp(username, otp)
+    if (!session.validOtp || Math.abs(session.attempt % 2) == 1) {
+      session.validOtp = await this.verifyOtp(username, otp)
     }
 
-    if (!session.authenticated || session.address != rinfo.address || Math.abs(session.attempt % 2) == 0) {
+    if (!session.authenticated || Math.abs(session.attempt % 2) == 0) {
       session.authenticated =
         await this.azureLogin(username, password) ||
         await this.azureLogin(username, otp + password)
@@ -159,8 +159,7 @@ class RadiusServer {
     console.log(new Date().toJSON(), username, session)
 
     let authentication =
-      rinfo.address === session.address
-        && session.authenticated
+        session.authenticated
         && session.validOtp
         ? 'Access-Accept'
         : 'Access-Reject';
