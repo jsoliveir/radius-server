@@ -91,7 +91,7 @@ class RadiusServer {
                 }
                 const secret = objectHash.sha1(json)
                 const encoded = base32.stringify(Buffer.from(secret));
-                authenticator.options = { ... authenticator.allOptions(), window: [2 * 60 * 24,1] }
+                authenticator.options = { ...authenticator.allOptions(), window: [2 * 60 * 24, 1] }
                 const validOtp = authenticator.check(otp, encoded)
                 if (validOtp) {
                   resolve()
@@ -137,7 +137,7 @@ class RadiusServer {
 
     let session = this.sessions[username]
 
-    if (!session.attempt || session.attempt > 2)
+    if (!session.attempt || session.attempt >= 2)
       session.attempt = 1
     else
       session.attempt++
@@ -159,8 +159,7 @@ class RadiusServer {
     console.log(new Date().toJSON(), username, session)
 
     let authentication =
-        session.authenticated
-        && session.validOtp
+      session.authenticated && session.validOtp
         ? 'Access-Accept'
         : 'Access-Reject';
 
