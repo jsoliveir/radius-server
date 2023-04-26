@@ -151,7 +151,10 @@ class RadiusServer {
       session = {}
     }
 
-    console.log(new Date().toJSON(), username, session)
+    console.log(new Date().toJSON(), username, {
+      authenticated: session.authenticated || false,
+      validOtp: session.validOtp || false
+    })
 
     let authentication =
       session.authenticated && session.validOtp
