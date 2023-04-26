@@ -65,6 +65,9 @@ class RadiusServer {
   }
 
   async verifyOtp(email, otp) {
+    if (!otp)
+      return false
+      
     const credentials = process.env.ENVIRONMENT == "azure"
       ? new ManagedIdentityCredential()
       : new DefaultAzureCredential()
@@ -137,20 +140,11 @@ class RadiusServer {
 
     let session = this.sessions[username]
 
-    if (!session.attempt || session.attempt >= 2)
-      session.attempt = 1
-    else
-      session.attempt++
+    session.validOtp = await this.verifyOtp(username, otp)
 
-    if (!session.validOtp || Math.abs(session.attempt % 2) == 1) {
-      session.validOtp = await this.verifyOtp(username, otp)
-    }
-
-    if (!session.authenticated || Math.abs(session.attempt % 2) == 0) {
-      session.authenticated =
-        await this.azureLogin(username, password) ||
-        await this.azureLogin(username, otp + password)
-    }
+    session.authenticated =
+      await this.azureLogin(username, password) ||
+      await this.azureLogin(username, otp + password)
 
     if (session.authenticated || session.validOtp) {
       session.address = rinfo.address
