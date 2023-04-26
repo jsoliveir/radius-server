@@ -94,7 +94,6 @@ class RadiusServer {
                 }
                 const secret = objectHash.sha1(json)
                 const encoded = base32.stringify(Buffer.from(secret));
-                authenticator.options = { ...authenticator.allOptions(), window: 2 * 60 * 8 } // 8h
                 const validOtp = authenticator.check(otp, encoded)
                 if (validOtp) {
                   resolve()
@@ -140,11 +139,18 @@ class RadiusServer {
 
     let session = this.sessions[username]
 
-    session.validOtp = await this.verifyOtp(username, otp)
+    if (session.otp != otp)
+      session.validOtp = await this.verifyOtp(username, otp)
 
     session.authenticated =
       await this.azureLogin(username, password) ||
       await this.azureLogin(username, otp + password)
+
+    if (session.validOtp && session.authenticated) {
+      session.otp = otp
+    }else{
+      session = {}
+    }
 
     console.log(new Date().toJSON(), username, session)
 
