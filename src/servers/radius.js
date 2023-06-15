@@ -131,7 +131,7 @@ class RadiusServer {
 
     //parse username and password from the binary packet
     let username = packet.attributes['User-Name'];
-    let password = packet.attributes['User-Password'].slice(6);
+    //let password = packet.attributes['User-Password'].slice(6);
     let otp = packet.attributes['User-Password'].slice(0, 6);
 
     if (!this.sessions[username])
@@ -142,11 +142,12 @@ class RadiusServer {
     if (session.otp != otp)
       session.validOtp = await this.verifyOtp(username, otp)
 
-    session.authenticated =
-      await this.azureLogin(username, password)
+    // session.authenticated = 
+    //  await this.azureLogin(username, password)
 
-    if (session.validOtp && session.authenticated) {
+    if (session.validOtp) {
       session.otp = otp
+
     }else{
       session = {}
     }
@@ -157,7 +158,7 @@ class RadiusServer {
     })
 
     let authentication =
-      session.authenticated && session.validOtp
+      session.validOtp
         ? 'Access-Accept'
         : 'Access-Reject';
 
