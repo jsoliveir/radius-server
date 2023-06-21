@@ -1,0 +1,33 @@
+name: Build
+
+on:
+  workflow_dispatch:
+  push:  
+    branches: 
+      - main
+
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.ref_name }}
+      
+jobs: 
+  build:   
+    runs-on: ubuntu-latest
+    name: build / ${{ matrix.image }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: habitus-health/pipelines/docker@main
+        with:     
+          args: --build-arg PAT=${{ secrets.AZ_ARTIFACTS_TOKEN }}
+          password: ${{ secrets.ADD_GITHUB_CLIENT_SECRET }}
+          username: ${{ vars.ADD_GITHUB_CLIENT_ID }}       
+          tag: ${{ needs.checks.outputs.imageTag }} 
+          build: ${{ matrix.dockerfile }}
+          image: ${{ matrix.image }}
+    strategy:
+      matrix:
+        include: 
+          # Account
+          - dockerfile: .
+            image: habitus-radius-server
+          
