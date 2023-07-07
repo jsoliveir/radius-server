@@ -31,91 +31,6 @@ class RadiusServer {
     )
   }
 
-  async azureLogin(username, password) {
-    if (!password)
-      return false
-
-    const tokenEndpoint = `https://login.microsoftonline.com/${tenantId}/oauth2/token`;
-    const resource = 'https://graph.microsoft.com'
-    const params = new URLSearchParams();
-    params.append('grant_type', 'password');
-    params.append('username', username);
-    params.append('password', password);
-    params.append('client_id', clientId);
-    params.append('resource', resource);
-
-    // access denied by default
-    let authenticated = false
-
-    // check the user's credentials against AAD
-    await axios.post(tokenEndpoint, params, { 'Content-Type': 'application/x-www-form-urlencoded' })
-      .then(() => {
-        authenticated = true
-      })
-      .catch(error => {
-        // if the error is interaction_required means the logon could not be completed due to 2FA
-        if (error.response.data.error == 'interaction_required') {
-          // then ignore it
-          authenticated = true
-        } else {
-          console.log(new Date().toJSON(), username, error.response.data)
-        }
-      });
-    return authenticated
-  }
-
-  async verifyOtp(email, otp) {
-    if (!otp)
-      return false
-
-    const credentials = process.env.ENVIRONMENT == "azure"
-      ? new ManagedIdentityCredential()
-      : new DefaultAzureCredential()
-
-    const scopes = ["https://graph.microsoft.com/.default"]; // Replace with the scopes you need
-
-    try {
-      await new Promise((resolve, reject) => {
-        credentials
-          .getToken(scopes)
-          .then((response) => {
-            fetch(`https://graph.microsoft.com/v1.0/users/${email}?$select=securityIdentifier,lastPasswordChangeDateTime,accountEnabled`, {
-              headers: {
-                'Authorization': `Bearer ${response.token}`
-              }
-            })
-              .then(response => response.json())
-              .then(data => {
-                const json = {
-                  sid: data.securityIdentifier,
-                  lpc: data.lastPasswordChangeDateTime,
-                  ace: data.accountEnabled,
-                  aid: process.env.AAD_CLIENT_ID
-                }
-                const secret = objectHash.sha1(json)
-                const encoded = base32.stringify(Buffer.from(secret));
-                const validOtp = authenticator.check(otp, encoded)
-                if (validOtp) {
-                  resolve()
-                }
-                else {
-                  reject('invalid otp')
-                }
-              }).catch(err => {
-                console.log(new Date().toJSON(), email, err)
-                reject(err)
-              })
-          })
-          .catch((error) => {
-            console.log(new Date().toJSON(), email, error);
-          });
-      })
-    } catch {
-      return false
-    }
-    return true
-  }
-
   async onMessageReceived(msg, rinfo) {
     //parse udp packet
     let packet = radius.decode({
@@ -180,6 +95,92 @@ class RadiusServer {
     }, 500 * session.attempts)
 
   }
+
+  async azureLogin(username, password) {
+    if (!password)
+      return false
+
+    const tokenEndpoint = `https://login.microsoftonline.com/${tenantId}/oauth2/token`;
+    const resource = 'https://graph.microsoft.com'
+    const params = new URLSearchParams();
+    params.append('grant_type', 'password');
+    params.append('username', username);
+    params.append('password', password);
+    params.append('client_id', clientId);
+    params.append('resource', resource);
+
+    // access denied by default
+    let authenticated = false
+
+    // check the user's credentials against AAD
+    await axios.post(tokenEndpoint, params, { 'Content-Type': 'application/x-www-form-urlencoded' })
+      .then(() => {
+        authenticated = true
+      })
+      .catch(error => {
+        // if the error is interaction_required means the logon could not be completed due to 2FA
+        if (error.response.data.error == 'interaction_required') {
+          // then ignore it
+          authenticated = true
+        } else {
+          console.log(new Date().toJSON(), username, error.response.data)
+        }
+      });
+    return authenticated
+  }
+
+  async verifyOtp(email, otp) {
+    if (!otp)
+      return false
+
+    const credentials = process.env.ENVIRONMENT == "azure"
+      ? new EnvironmentCredential()
+      : new DefaultAzureCredential()
+
+    const scopes = ["https://graph.microsoft.com/.default"]; // Replace with the scopes you need
+
+    try {
+      await new Promise((resolve, reject) => {
+        credentials
+          .getToken(scopes)
+          .then((response) => {
+            fetch(`https://graph.microsoft.com/v1.0/users/${email}?$select=securityIdentifier,lastPasswordChangeDateTime,accountEnabled`, {
+              headers: {
+                'Authorization': `Bearer ${response.token}`
+              }
+            })
+              .then(response => response.json())
+              .then(data => {
+                const json = {
+                  sid: data.securityIdentifier,
+                  lpc: data.lastPasswordChangeDateTime,
+                  ace: data.accountEnabled,
+                  aid: process.env.AAD_CLIENT_ID
+                }
+                const secret = objectHash.sha1(json)
+                const encoded = base32.stringify(Buffer.from(secret));
+                const validOtp = authenticator.check(otp, encoded)
+                if (validOtp) {
+                  resolve()
+                }
+                else {
+                  reject('invalid otp')
+                }
+              }).catch(err => {
+                console.log(new Date().toJSON(), email, err)
+                reject(err)
+              })
+          })
+          .catch((error) => {
+            console.log(new Date().toJSON(), email, error);
+          });
+      })
+    } catch {
+      return false
+    }
+    return true
+  }
+
 }
 
 export default RadiusServer
