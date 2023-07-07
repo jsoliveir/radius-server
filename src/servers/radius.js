@@ -8,7 +8,7 @@ const tenantId = process.env.AAD_TENANT_ID
 const secret = process.env.RADIUS_SECRET
 import { authenticator } from 'otplib';
 import objectHash from 'object-hash';
-import { DefaultAzureCredential, ManagedIdentityCredential } from '@azure/identity'
+import { DefaultAzureCredential, EnvironmentCredential } from '@azure/identity'
 import { Buffer } from 'buffer'
 import { base32 } from 'rfc4648'
 
