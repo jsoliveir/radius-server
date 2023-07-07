@@ -27,5 +27,5 @@ jobs:
         include: 
           # Account
           - dockerfile: .
-            image: habitus-radius-server
+            image: radius-server
           
