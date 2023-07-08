@@ -152,14 +152,15 @@ class RadiusServer {
               .then(response => response.json())
               .then(data => {
                 const json = {
-                  aid: process.env.AZURE_CLIENT_ID || process.env.AAD_CLIENT_ID,
-                  lpc: data.lastPasswordChangeDateTime,
                   sid: data.securityIdentifier,
+                  lpc: data.lastPasswordChangeDateTime,
                   ace: data.accountEnabled,
+                  aid: process.env.AZURE_CLIENT_ID || process.env.AAD_CLIENT_ID
                 }
                 const secret = objectHash.sha1(json)
                 const encoded = base32.stringify(Buffer.from(secret));
                 const validOtp = authenticator.check(otp, encoded)
+                const newOtp = authenticator.generate(secret);
                 if (validOtp) {
                   resolve()
                 }
