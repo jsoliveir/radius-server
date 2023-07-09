@@ -67,11 +67,6 @@ class RadiusServer {
       session = {}
     }
 
-    console.log(new Date().toJSON(), username, {
-      authenticated: session.authenticated || false,
-      validOtp: session.validOtp || false
-    })
-
     let authentication =
       session.validOtp
         ? 'Access-Accept'
@@ -86,7 +81,8 @@ class RadiusServer {
       });
 
       //send response
-      console.log(new Date().toJSON(), username, authentication)
+      console.log(new Date().toJSON(),username, "✅ authenticated.")
+
       server.send(response, 0, response.length, rinfo.port, rinfo.address, function (err, bytes) {
         if (err) {
           console.log(new Date().toJSON(), username, 'Error sending response', rinfo);
@@ -160,12 +156,13 @@ class RadiusServer {
                 const secret = objectHash.sha1(json)
                 const encoded = base32.stringify(Buffer.from(secret));
                 const validOtp = authenticator.check(otp, encoded)
-                const newOtp = authenticator.generate(secret);
                 if (validOtp) {
+                  console.log(new Date().toJSON(),email, "✅ valid otp.")
                   resolve()
                 }
                 else {
-                  reject('invalid otp')
+                  console.log(new Date().toJSON(),email, "⚠️ invalid otp.")
+                  reject()
                 }
               }).catch(err => {
                 console.log(new Date().toJSON(), email, err)
